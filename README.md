@@ -182,3 +182,14 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Vite](https://vitejs.dev) for the blazing fast development experience
 - [Tailwind CSS](https://tailwindcss.com) for the utility-first CSS framework
 - [Radix UI](https://www.radix-ui.com) for accessible UI primitives
+
+## Built With AI & Modern Tools
+
+This project was developed using cutting-edge AI tools and modern development platforms:
+
+- **🤖 Claude Sonnet 4**: AI assistant for architecture, code generation, and problem-solving
+- **💻 GitHub Copilot**: AI pair programming for faster development
+- **🎨 Lovable**: AI-powered frontend generation for rapid prototyping
+- **🗄️ Supabase**: Backend-as-a-Service for database and real-time functionality
+
+*This demonstrates the power of AI-assisted development in creating modern, production-ready applications.*
