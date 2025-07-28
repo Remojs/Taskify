@@ -1,7 +1,3 @@
-# Taskify - Modern Task Management Application
-
-![Taskify Banner](./src/assets/task-hero.jpg)
-
 ## About Taskify
 
 Taskify is a modern, intuitive task management application designed to help you organize your daily activities, projects, and goals with ease. Whether you're a professional managing complex projects, a student organizing your studies, or simply someone looking to keep track of your daily tasks, Taskify provides the tools you need to stay productive and organized.
