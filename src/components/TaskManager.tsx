@@ -3,17 +3,28 @@ import { TaskForm, TaskData } from "./TaskForm";
 import { TaskList } from "./TaskList";
 import { TaskSlider } from "./TaskSlider";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Plus, CheckSquare, Calendar, Grid, LayoutGrid } from "lucide-react";
+import { Moon, Sun, Plus, CheckSquare, Calendar, Grid, LayoutGrid, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTasks } from "@/hooks/use-tasks";
 import heroImage from "@/assets/task-hero.jpg";
 
 export function TaskManager() {
-  const [tasks, setTasks] = useState<TaskData[]>([]);
   const [darkMode, setDarkMode] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'slider'>('grid');
   const [scrollY, setScrollY] = useState(0);
   const { toast } = useToast();
+  
+  // Usar el hook de Supabase
+  const { 
+    tasks, 
+    loading, 
+    error, 
+    createTask, 
+    deleteTask, 
+    toggleTaskComplete,
+    refreshTasks 
+  } = useTasks();
 
   // Parallax effect
   useEffect(() => {
@@ -29,53 +40,31 @@ export function TaskManager() {
   };
 
   // Create new task
-  const handleTaskCreate = (newTask: TaskData) => {
-    setTasks(prev => [...prev, newTask]);
-    setShowForm(false);
-    
-    toast({
-      title: "✅ Tarea creada",
-      description: `"${newTask.title}" ha sido agregada exitosamente.`,
-    });
-
-    // Simulate Google Calendar integration
-    if (newTask.addToGoogleCalendar) {
-      setTimeout(() => {
-        toast({
-          title: "📅 Google Calendar",
-          description: "La tarea ha sido sincronizada con tu calendario.",
-        });
-      }, 1500);
+  const handleTaskCreate = async (newTask: TaskData) => {
+    const success = await createTask(newTask);
+    if (success) {
+      setShowForm(false);
+      
+      // Simulate Google Calendar integration
+      if (newTask.addToGoogleCalendar) {
+        setTimeout(() => {
+          toast({
+            title: "📅 Google Calendar",
+            description: "La tarea ha sido sincronizada con tu calendario.",
+          });
+        }, 1500);
+      }
     }
   };
 
   // Complete task
-  const handleTaskComplete = (id: string) => {
-    setTasks(prev => prev.map(task => 
-      task.id === id ? { ...task, completed: !task.completed } : task
-    ));
-    
-    const task = tasks.find(t => t.id === id);
-    if (task) {
-      toast({
-        title: task.completed ? "📝 Tarea restaurada" : "✅ Tarea completada",
-        description: `"${task.title}" ${task.completed ? 'marcada como pendiente' : 'completada'}.`,
-      });
-    }
+  const handleTaskComplete = async (id: string) => {
+    await toggleTaskComplete(id);
   };
 
   // Delete task
-  const handleTaskDelete = (id: string) => {
-    const task = tasks.find(t => t.id === id);
-    setTasks(prev => prev.filter(task => task.id !== id));
-    
-    if (task) {
-      toast({
-        title: "🗑️ Tarea eliminada",
-        description: `"${task.title}" ha sido eliminada.`,
-        variant: "destructive"
-      });
-    }
+  const handleTaskDelete = async (id: string) => {
+    await deleteTask(id);
   };
 
   const stats = {
@@ -159,6 +148,17 @@ export function TaskManager() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={refreshTasks}
+                  className="w-10 h-10 p-0"
+                  disabled={loading}
+                  title="Actualizar tareas"
+                >
+                  <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={toggleDarkMode}
                   className="w-10 h-10 p-0"
                 >
@@ -188,19 +188,41 @@ export function TaskManager() {
             </div>
           )}
 
+          {/* Error Message */}
+          {error && (
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && tasks.length === 0 && (
+            <div className="text-center py-16 animate-fade-in">
+              <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-muted to-muted/50 rounded-full flex items-center justify-center">
+                <RefreshCw className="w-12 h-12 text-muted-foreground animate-spin" />
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-2">Cargando tareas...</h3>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Conectando con la base de datos.
+              </p>
+            </div>
+          )}
+
           {/* Task Display */}
-          {viewMode === 'grid' ? (
-            <TaskList
-              tasks={tasks}
-              onTaskComplete={handleTaskComplete}
-              onTaskDelete={handleTaskDelete}
-            />
-          ) : (
-            <TaskSlider
-              tasks={tasks}
-              onTaskComplete={handleTaskComplete}
-              onTaskDelete={handleTaskDelete}
-            />
+          {!loading && (
+            viewMode === 'grid' ? (
+              <TaskList
+                tasks={tasks}
+                onTaskComplete={handleTaskComplete}
+                onTaskDelete={handleTaskDelete}
+              />
+            ) : (
+              <TaskSlider
+                tasks={tasks}
+                onTaskComplete={handleTaskComplete}
+                onTaskDelete={handleTaskDelete}
+              />
+            )
           )}
         </div>
       </main>

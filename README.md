@@ -41,6 +41,11 @@ Taskify is built with a powerful and modern tech stack:
 - **Embla Carousel**: Lightweight carousel component for image galleries
 - **Recharts**: Composable charting library for data visualization
 
+### Backend & Database
+
+- **Supabase**: PostgreSQL database with real-time subscriptions
+- **Row Level Security**: User data isolation and security
+
 ### Developer Tools
 
 - **ESLint**: For code linting and maintaining code quality
@@ -48,12 +53,29 @@ Taskify is built with a powerful and modern tech stack:
 - **PostCSS**: Tool for transforming CSS with JavaScript plugins
 - **Autoprefixer**: Plugin to parse CSS and add vendor prefixes
 
+## Database Setup
+
+This project uses **Supabase** as the backend database. To get started:
+
+1. **Create a Supabase account** at [https://supabase.com](https://supabase.com)
+2. **Follow the setup guide** in [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
+3. **Configure your environment variables** in `.env`
+
+### Key Features with Supabase:
+
+- ✅ **Persistent task storage**: Tasks are saved to PostgreSQL database
+- ✅ **Real-time updates**: Changes sync across browser tabs
+- ✅ **User isolation**: Each user sees only their tasks (RLS enabled)
+- ✅ **Automatic backups**: Supabase handles database backups
+- ✅ **Scalable**: Ready for production deployment
+
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js (v16.0.0 or newer)
 - npm or yarn
+- Cuenta en [Supabase](https://supabase.com) (gratuita)
 
 ### Installation
 
@@ -69,11 +91,17 @@ npm install
 # or
 yarn install
 
+# Configure Supabase (see SUPABASE_SETUP.md for detailed instructions)
+cp .env.example .env
+# Edit .env with your Supabase credentials
+
 # Start the development server
 npm run dev
 # or
 yarn dev
 ```
+
+**Important**: Before running the app, you need to configure Supabase. See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed instructions.
 
 The application will be available at http://localhost:8080
 
