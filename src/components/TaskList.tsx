@@ -7,9 +7,10 @@ interface TaskListProps {
   tasks: TaskData[];
   onTaskComplete: (id: string) => void;
   onTaskDelete: (id: string) => void;
+  showCompletedFormat?: boolean; // Nuevo prop para formato de completadas
 }
 
-export function TaskList({ tasks, onTaskComplete, onTaskDelete }: TaskListProps) {
+export function TaskList({ tasks, onTaskComplete, onTaskDelete, showCompletedFormat = false }: TaskListProps) {
   if (tasks.length === 0) {
     return (
       <Card className="p-12 text-center animate-fade-in bg-card/50 backdrop-blur-sm border-0 shadow-lg">
@@ -41,6 +42,18 @@ export function TaskList({ tasks, onTaskComplete, onTaskDelete }: TaskListProps)
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString + 'T00:00:00');
+    
+    // Si es formato de completadas, solo mostrar fecha normal sin "Hoy" ni "Mañana"
+    if (showCompletedFormat) {
+      return date.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+    
+    // Para tareas pendientes, mantener "Hoy" y "Mañana"
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);

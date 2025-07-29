@@ -18,6 +18,9 @@ const COLOR_MAP: { [key: string]: string } = {
   '#9013FE': '3',  // Púrpura -> Púrpura grape
 }
 
+// Color para tareas completadas
+const COMPLETED_COLOR = '8' // Gris
+
 interface GoogleCalendarHook {
   isGoogleLoaded: boolean
   isSignedIn: boolean
@@ -25,6 +28,7 @@ interface GoogleCalendarHook {
   signIn: () => Promise<boolean>
   signOut: () => Promise<void>
   addTaskToCalendar: (task: TaskData) => Promise<string | null>
+  updateTaskInCalendar: (taskId: string, completed: boolean, originalColor: string) => Promise<boolean>
   initializeGoogleAPI: () => Promise<boolean>
 }
 
@@ -308,6 +312,54 @@ export function useGoogleCalendar(): GoogleCalendarHook {
     }
   }, [isSignedIn, accessToken, signIn, toast])
 
+  // Actualizar color de tarea en Google Calendar cuando se marca como completada
+  const updateTaskInCalendar = useCallback(async (taskId: string, completed: boolean, originalColor: string): Promise<boolean> => {
+    if (!isSignedIn || !accessToken) {
+      console.log('🔄 User not signed in for update')
+      return false
+    }
+
+    try {
+      // Obtener el evento actual
+      const getResponse = await (window as any).gapi.client.calendar.events.get({
+        calendarId: 'primary',
+        eventId: taskId
+      })
+
+      if (!getResponse.result) {
+        console.log('📅 Event not found in calendar')
+        return false
+      }
+
+      // Actualizar el color del evento
+      const updatedEvent = {
+        ...getResponse.result,
+        colorId: completed ? COMPLETED_COLOR : (COLOR_MAP[originalColor] || '1')
+      }
+
+      // Actualizar el evento en Google Calendar
+      const updateResponse = await (window as any).gapi.client.calendar.events.update({
+        calendarId: 'primary',
+        eventId: taskId,
+        resource: updatedEvent
+      })
+
+      console.log('✅ Event color updated in Google Calendar:', updateResponse)
+
+      toast({
+        title: "📅 Calendario actualizado",
+        description: completed ? "Tarea marcada como completada en el calendario" : "Tarea restaurada en el calendario",
+      })
+
+      return true
+      
+    } catch (error) {
+      console.error('❌ Error updating calendar event:', error)
+      // No mostrar toast de error para esto, es opcional
+      return false
+    }
+  }, [isSignedIn, accessToken, toast])
+
   return {
     isGoogleLoaded,
     isSignedIn,
@@ -315,6 +367,7 @@ export function useGoogleCalendar(): GoogleCalendarHook {
     signIn,
     signOut,
     addTaskToCalendar,
+    updateTaskInCalendar,
     initializeGoogleAPI
   }
 }

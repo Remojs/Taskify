@@ -17,9 +17,10 @@ interface TaskSliderProps {
   tasks: TaskData[];
   onTaskComplete: (id: string) => void;
   onTaskDelete: (id: string) => void;
+  showCompletedFormat?: boolean; // Nuevo prop para formato de completadas
 }
 
-export function TaskSlider({ tasks, onTaskComplete, onTaskDelete }: TaskSliderProps) {
+export function TaskSlider({ tasks, onTaskComplete, onTaskDelete, showCompletedFormat = false }: TaskSliderProps) {
   if (tasks.length === 0) {
     return (
       <div className="text-center py-16 animate-fade-in">
@@ -46,6 +47,29 @@ export function TaskSlider({ tasks, onTaskComplete, onTaskDelete }: TaskSliderPr
 
   const dateGroups = Object.entries(tasksByDate).sort(([a], [b]) => a.localeCompare(b));
 
+  // Function to format date based on context
+  const formatDateHeader = (dateKey: string) => {
+    const date = new Date(dateKey);
+    
+    // Si es formato de completadas, solo mostrar fecha normal
+    if (showCompletedFormat) {
+      return format(date, 'EEEE, d MMMM yyyy', { locale: es });
+    }
+    
+    // Para tareas pendientes, mostrar formato con "Hoy" y "Mañana"
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const todayStr = today.toISOString().split('T')[0];
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    
+    if (dateKey === todayStr) return "Hoy";
+    if (dateKey === tomorrowStr) return "Mañana";
+    
+    return format(date, 'EEEE, d MMMM', { locale: es });
+  };
+
   return (
     <div className="space-y-8">
       {dateGroups.map(([dateKey, dateTasks], groupIndex) => (
@@ -57,7 +81,7 @@ export function TaskSlider({ tasks, onTaskComplete, onTaskDelete }: TaskSliderPr
             </div>
             <div>
               <h3 className="text-lg font-semibold text-foreground">
-                {format(new Date(dateKey), 'EEEE, d MMMM', { locale: es })}
+                {formatDateHeader(dateKey)}
               </h3>
               <p className="text-sm text-muted-foreground">
                 {dateTasks.length} {dateTasks.length === 1 ? 'tarea' : 'tareas'}

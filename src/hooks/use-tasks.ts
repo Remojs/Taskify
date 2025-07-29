@@ -35,7 +35,7 @@ export const useTasks = () => {
   const { toast } = useToast()
   
   // Hook de Google Calendar
-  const { addTaskToCalendar, isGoogleLoaded, initializeGoogleAPI } = useGoogleCalendar()
+  const { addTaskToCalendar, updateTaskInCalendar, isGoogleLoaded, initializeGoogleAPI } = useGoogleCalendar()
 
   // Cargar tareas al inicializar
   const loadTasks = useCallback(async () => {
@@ -91,23 +91,36 @@ export const useTasks = () => {
         supabaseTask.calendar_id = calendarEventId
       }
 
-      const { error } = await supabase
+      // Insertar en Supabase
+      const { data, error } = await supabase
         .from('tasks')
         .insert([supabaseTask])
+        .select()
 
       if (error) throw error
 
-      // Actualizar estado local
-      const updatedTask = { ...taskData }
-      if (calendarEventId) {
-        updatedTask.addToGoogleCalendar = true
+      // Actualizar estado local inmediatamente con los datos de la base de datos
+      if (data && data.length > 0) {
+        const newTaskFromDB = supabaseToTaskData(data[0])
+        setTasks(prev => [newTaskFromDB, ...prev])
+      } else {
+        // Fallback: usar datos locales si no se obtienen de la DB
+        const updatedTask = { ...taskData }
+        if (calendarEventId) {
+          updatedTask.addToGoogleCalendar = true
+        }
+        setTasks(prev => [updatedTask, ...prev])
       }
-      setTasks(prev => [updatedTask, ...prev])
       
       toast({
         title: "✅ Tarea creada",
         description: `"${taskData.title}" ha sido guardada${calendarEventId ? ' y agregada al calendario' : ''}.`,
       })
+
+      // Refresh adicional para asegurar sincronización después de un pequeño delay
+      setTimeout(() => {
+        loadTasks()
+      }, 500)
 
       return true
     } catch (err) {
@@ -206,6 +219,20 @@ export const useTasks = () => {
         title: newCompleted ? "✅ Tarea completada" : "📝 Tarea restaurada",
         description: `"${task.title}" ${newCompleted ? 'completada' : 'marcada como pendiente'}.`,
       })
+
+      // Actualizar color en Google Calendar si la tarea estaba sincronizada
+      if (task.addToGoogleCalendar) {
+        // Buscar el calendar_id en la base de datos
+        const { data: dbTask } = await supabase
+          .from('tasks')
+          .select('calendar_id')
+          .eq('id', id)
+          .single()
+
+        if (dbTask?.calendar_id && dbTask.calendar_id !== 'pending') {
+          await updateTaskInCalendar(dbTask.calendar_id, newCompleted, task.color)
+        }
+      }
     }
     
     return success

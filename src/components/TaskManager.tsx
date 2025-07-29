@@ -3,16 +3,18 @@ import { TaskForm, TaskData } from "./TaskForm";
 import { TaskList } from "./TaskList";
 import { TaskSlider } from "./TaskSlider";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Plus, CheckSquare, Calendar, Grid, LayoutGrid, RefreshCw } from "lucide-react";
+import { Moon, Sun, Plus, Calendar, Grid, LayoutGrid, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTasks } from "@/hooks/use-tasks";
-import heroImage from "@/assets/task-hero.jpg";
+import heroImage from "@/assets/task-hero.png";
+import taskifyIcon from "@/assets/icon.png";
 
 export function TaskManager() {
   const [darkMode, setDarkMode] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'slider'>('grid');
   const [scrollY, setScrollY] = useState(0);
+  const [showCompleted, setShowCompleted] = useState(true); // Estado para sección colapsable
   const { toast } = useToast();
   
   // Usar el hook de Supabase
@@ -66,7 +68,7 @@ export function TaskManager() {
   };
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-300 relative overflow-hidden">
+    <div className="min-h-screen bg-background transition-colors duration-300 relative overflow-hidden flex flex-col">
       {/* Parallax Background */}
       <div 
         className="absolute inset-0 w-full h-[120vh]"
@@ -80,19 +82,19 @@ export function TaskManager() {
         }}
       />
       {/* Animated overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-background/90 via-background/85 to-background/80 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-background/60 via-background/50 to-background/55 backdrop-blur-[1px]" />
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border relative">
+      <header className="sticky top-0 z-50 bg-gradient-to-r from-blue-50/95 via-indigo-50/95 to-purple-50/95 dark:from-slate-800/95 dark:via-slate-900/95 dark:to-slate-800/95 backdrop-blur-lg border-b border-blue-200/50 dark:border-slate-700/50 relative shadow-sm">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             {/* Logo & Title */}
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary-hover rounded-xl flex items-center justify-center shadow-lg">
-                <CheckSquare className="w-6 h-6 text-primary-foreground" />
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary-hover rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                <img src={taskifyIcon} alt="Taskify" className="w-8 h-8 object-contain" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">TaskFlow</h1>
-                <p className="text-sm text-muted-foreground">Gestión elegante de tareas</p>
+                <h1 className="text-2xl font-bold text-foreground">Taskify</h1>
+                <p className="text-sm text-muted-foreground">Organiza tu día de manera eficiente</p>
               </div>
             </div>
 
@@ -181,7 +183,7 @@ export function TaskManager() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-6 py-8 relative z-10">
+      <main className="flex-1 w-full px-6 py-8 relative z-10">
         <div className="space-y-8">
           {/* Task Form */}
           {showForm && (
@@ -210,31 +212,114 @@ export function TaskManager() {
             </div>
           )}
 
-          {/* Task Display */}
+          {/* Task Display - Pending Tasks First, then Collapsible Completed */}
           {!loading && (
-            viewMode === 'grid' ? (
-              <TaskList
-                tasks={tasks}
-                onTaskComplete={handleTaskComplete}
-                onTaskDelete={handleTaskDelete}
-              />
-            ) : (
-              <TaskSlider
-                tasks={tasks}
-                onTaskComplete={handleTaskComplete}
-                onTaskDelete={handleTaskDelete}
-              />
-            )
+            <div className="space-y-6">
+              {/* Pending Tasks Section */}
+              {tasks.filter(t => !t.completed).length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-semibold text-foreground">Tareas Pendientes</h2>
+                    <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-full text-sm font-medium">
+                      {tasks.filter(t => !t.completed).length}
+                    </span>
+                  </div>
+                  {viewMode === 'grid' ? (
+                    <TaskList
+                      tasks={tasks.filter(t => !t.completed).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())}
+                      onTaskComplete={handleTaskComplete}
+                      onTaskDelete={handleTaskDelete}
+                    />
+                  ) : (
+                    <TaskSlider
+                      tasks={tasks.filter(t => !t.completed).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())}
+                      onTaskComplete={handleTaskComplete}
+                      onTaskDelete={handleTaskDelete}
+                    />
+                  )}
+                </div>
+              ) : (
+                /* Empty State - No Pending Tasks */
+                <div className="text-center py-12 space-y-4">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
+                    <Plus className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-foreground">No hay tareas pendientes</h3>
+                    <p className="text-muted-foreground">Crea tu primera tarea para comenzar</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Collapsible Completed Tasks Section */}
+              {tasks.filter(t => t.completed).length > 0 && (
+                <div className="border-t border-border pt-6">
+                  <div className="space-y-4">
+                    {/* Collapsible Header */}
+                    <button
+                      onClick={() => setShowCompleted(!showCompleted)}
+                      className="w-full flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 rounded-lg transition-colors duration-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-xl font-semibold text-foreground">Tareas Completadas</h2>
+                        <span className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 rounded-full text-sm font-medium">
+                          {tasks.filter(t => t.completed).length}
+                        </span>
+                      </div>
+                      <div className="flex items-center text-muted-foreground">
+                        {showCompleted ? (
+                          <ChevronUp className="w-5 h-5" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5" />
+                        )}
+                      </div>
+                    </button>
+
+                    {/* Collapsible Content */}
+                    {showCompleted && (
+                      <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+                        {viewMode === 'grid' ? (
+                          <TaskList
+                            tasks={tasks.filter(t => t.completed).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())}
+                            onTaskComplete={handleTaskComplete}
+                            onTaskDelete={handleTaskDelete}
+                            showCompletedFormat={true}
+                          />
+                        ) : (
+                          <TaskSlider
+                            tasks={tasks.filter(t => t.completed).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())}
+                            onTaskComplete={handleTaskComplete}
+                            onTaskDelete={handleTaskDelete}
+                            showCompletedFormat={true}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="mt-20 py-8 border-t border-border bg-muted/30 relative z-10">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            Diseñado con ❤️ para una gestión elegante de tareas
-          </p>
+      <footer className="mt-auto py-12 bg-gradient-to-r from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-t border-blue-200/50 dark:border-slate-700/50 relative z-10">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center space-y-4">
+            <div className="flex items-center justify-center gap-2">
+              <img src={taskifyIcon} alt="Taskify" className="w-6 h-6" />
+              <span className="text-lg font-semibold text-slate-700 dark:text-slate-300">Taskify</span>
+            </div>
+            <p className="text-slate-600 max-w-md mx-auto">
+              Organiza tu día de manera eficiente y mantén tus tareas bajo control.
+            </p>
+            <div className="flex justify-center gap-6 text-sm text-slate-500">
+              <span>© 2025 Taskify</span>
+              <span>•</span>
+              <span>Hecho con ❤️</span>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
