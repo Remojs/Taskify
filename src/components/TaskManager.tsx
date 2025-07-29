@@ -23,7 +23,9 @@ export function TaskManager() {
     createTask, 
     deleteTask, 
     toggleTaskComplete,
-    refreshTasks 
+    refreshTasks,
+    initializeGoogleAPI,
+    isGoogleLoaded 
   } = useTasks();
 
   // Parallax effect
@@ -44,16 +46,6 @@ export function TaskManager() {
     const success = await createTask(newTask);
     if (success) {
       setShowForm(false);
-      
-      // Simulate Google Calendar integration
-      if (newTask.addToGoogleCalendar) {
-        setTimeout(() => {
-          toast({
-            title: "📅 Google Calendar",
-            description: "La tarea ha sido sincronizada con tu calendario.",
-          });
-        }, 1500);
-      }
     }
   };
 
@@ -154,6 +146,16 @@ export function TaskManager() {
                   title="Actualizar tareas"
                 >
                   <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={initializeGoogleAPI}
+                  className="w-10 h-10 p-0"
+                  title={isGoogleLoaded ? "Google Calendar conectado" : "Conectar Google Calendar"}
+                >
+                  <Calendar className={`w-5 h-5 ${isGoogleLoaded ? 'text-green-500' : 'text-muted-foreground'}`} />
                 </Button>
                 
                 <Button

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase, Task } from '@/lib/supabase'
 import { TaskData } from '@/components/TaskForm'
 import { useToast } from './use-toast'
+import { useGoogleCalendar } from './use-google-calendar'
 
 // Convertir TaskData a formato Supabase
 const taskDataToSupabase = (task: TaskData, userId: string = 'anonymous') => ({
@@ -32,6 +33,9 @@ export const useTasks = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
+  
+  // Hook de Google Calendar
+  const { addTaskToCalendar, isGoogleLoaded, initializeGoogleAPI } = useGoogleCalendar()
 
   // Cargar tareas al inicializar
   const loadTasks = useCallback(async () => {
@@ -68,7 +72,24 @@ export const useTasks = () => {
   const createTask = async (taskData: TaskData): Promise<boolean> => {
     try {
       setError(null)
+      let calendarEventId: string | null = null
+
+      // Si el usuario quiere agregar a Google Calendar
+      if (taskData.addToGoogleCalendar) {
+        // Inicializar Google API si no está cargado
+        if (!isGoogleLoaded) {
+          await initializeGoogleAPI()
+        }
+        
+        // Intentar agregar al calendario
+        calendarEventId = await addTaskToCalendar(taskData)
+      }
+
+      // Preparar datos para Supabase
       const supabaseTask = taskDataToSupabase(taskData)
+      if (calendarEventId) {
+        supabaseTask.calendar_id = calendarEventId
+      }
 
       const { error } = await supabase
         .from('tasks')
@@ -77,11 +98,15 @@ export const useTasks = () => {
       if (error) throw error
 
       // Actualizar estado local
-      setTasks(prev => [taskData, ...prev])
+      const updatedTask = { ...taskData }
+      if (calendarEventId) {
+        updatedTask.addToGoogleCalendar = true
+      }
+      setTasks(prev => [updatedTask, ...prev])
       
       toast({
         title: "✅ Tarea creada",
-        description: `"${taskData.title}" ha sido guardada.`,
+        description: `"${taskData.title}" ha sido guardada${calendarEventId ? ' y agregada al calendario' : ''}.`,
       })
 
       return true
@@ -194,6 +219,9 @@ export const useTasks = () => {
     updateTask,
     deleteTask,
     toggleTaskComplete,
-    refreshTasks: loadTasks
+    refreshTasks: loadTasks,
+    // Exponer funciones de Google Calendar
+    initializeGoogleAPI,
+    isGoogleLoaded
   }
 }

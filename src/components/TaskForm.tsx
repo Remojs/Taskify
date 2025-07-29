@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar, CalendarPlus, Hash, Tag } from "lucide-react";
+import { Calendar, CalendarPlus, Hash, Tag, Clock, CalendarDays } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface TaskFormProps {
@@ -20,6 +20,11 @@ export interface TaskData {
   addToGoogleCalendar: boolean;
   completed: boolean;
   createdAt: Date;
+  // Nuevos campos para Google Calendar
+  isAllDay?: boolean;
+  startTime?: string;
+  endTime?: string;
+  calendarDate?: string; // Fecha específica para el calendario (puede ser diferente a 'date')
 }
 
 const categories = [
@@ -46,6 +51,12 @@ export function TaskForm({ onTaskCreate }: TaskFormProps) {
   const [selectedColor, setSelectedColor] = useState(taskColors[0].value);
   const [date, setDate] = useState("");
   const [addToGoogleCalendar, setAddToGoogleCalendar] = useState(false);
+  
+  // Nuevos estados para configuración de Google Calendar
+  const [isAllDay, setIsAllDay] = useState(true);
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("10:00");
+  const [calendarDate, setCalendarDate] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +71,12 @@ export function TaskForm({ onTaskCreate }: TaskFormProps) {
       date,
       addToGoogleCalendar,
       completed: false,
-      createdAt: new Date()
+      createdAt: new Date(),
+      // Nuevos campos para Google Calendar
+      isAllDay: addToGoogleCalendar ? isAllDay : undefined,
+      startTime: addToGoogleCalendar && !isAllDay ? startTime : undefined,
+      endTime: addToGoogleCalendar && !isAllDay ? endTime : undefined,
+      calendarDate: addToGoogleCalendar ? (calendarDate || date) : undefined,
     };
 
     onTaskCreate(newTask);
@@ -71,6 +87,10 @@ export function TaskForm({ onTaskCreate }: TaskFormProps) {
     setSelectedColor(taskColors[0].value);
     setDate("");
     setAddToGoogleCalendar(false);
+    setIsAllDay(true);
+    setStartTime("09:00");
+    setEndTime("10:00");
+    setCalendarDate("");
   };
 
   return (
@@ -156,18 +176,93 @@ export function TaskForm({ onTaskCreate }: TaskFormProps) {
           />
         </div>
 
-        {/* Google Calendar Checkbox */}
-        <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-lg">
-          <Checkbox
-            id="google-calendar"
-            checked={addToGoogleCalendar}
-            onCheckedChange={(checked) => setAddToGoogleCalendar(checked as boolean)}
-            className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-          />
-          <Label htmlFor="google-calendar" className="text-sm text-foreground flex items-center gap-2 cursor-pointer">
-            <CalendarPlus className="w-4 h-4" />
-            Agregar a Google Calendar
-          </Label>
+        {/* Google Calendar Section */}
+        <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+          <div className="flex items-center space-x-3">
+            <Checkbox
+              id="google-calendar"
+              checked={addToGoogleCalendar}
+              onCheckedChange={(checked) => setAddToGoogleCalendar(checked as boolean)}
+              className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+            />
+            <Label htmlFor="google-calendar" className="text-sm text-foreground flex items-center gap-2 cursor-pointer">
+              <CalendarPlus className="w-4 h-4" />
+              Agregar a Google Calendar
+            </Label>
+          </div>
+          
+          {/* Configuraciones adicionales para Google Calendar */}
+          {addToGoogleCalendar && (
+            <div className="space-y-4 pl-6 border-l-2 border-primary/20">
+              {/* Fecha del calendario */}
+              <div className="space-y-2">
+                <Label htmlFor="calendar-date" className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4" />
+                  Fecha en calendario (opcional)
+                </Label>
+                <Input
+                  id="calendar-date"
+                  type="date"
+                  value={calendarDate}
+                  onChange={(e) => setCalendarDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="bg-background/80 border-border focus:ring-2 focus:ring-primary/20"
+                  placeholder="Si no se selecciona, usa la fecha de la tarea"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Si no se especifica, se usará la fecha de la tarea
+                </p>
+              </div>
+
+              {/* Todo el día vs horario específico */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id="all-day"
+                    checked={isAllDay}
+                    onCheckedChange={(checked) => setIsAllDay(checked as boolean)}
+                    className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                  <Label htmlFor="all-day" className="text-sm text-foreground flex items-center gap-2 cursor-pointer">
+                    <Calendar className="w-4 h-4" />
+                    Todo el día
+                  </Label>
+                </div>
+
+                {/* Horarios específicos */}
+                {!isAllDay && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="start-time" className="text-xs font-medium text-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Hora inicio
+                      </Label>
+                      <Input
+                        id="start-time"
+                        type="time"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                        className="bg-background/80 border-border focus:ring-2 focus:ring-primary/20 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="end-time" className="text-xs font-medium text-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Hora fin
+                      </Label>
+                      <Input
+                        id="end-time"
+                        type="time"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                        className="bg-background/80 border-border focus:ring-2 focus:ring-primary/20 text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Submit Button */}
