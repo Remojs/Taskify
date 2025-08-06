@@ -1,4 +1,4 @@
-import { TaskManager } from "@/components/TaskManager";
+import { TaskManager } from "@/features/app";
 
 const Index = () => {
   return <TaskManager />;
