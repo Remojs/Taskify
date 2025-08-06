@@ -8,7 +8,11 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "lint:fix": "eslint . --fix",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "deploy:build": "npm run type-check && npm run build",
+    "deploy:preview": "npm run deploy:build && npm run preview"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

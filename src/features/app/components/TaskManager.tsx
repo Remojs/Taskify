@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { TaskForm, TaskList, TaskSlider, useTasks, TaskData } from "@/features/tasks";
 import { Button } from "@/shared/components/ui";
 import { useToast } from "@/shared/hooks";
+import { DatabaseErrorMessage } from "@/shared/components";
 import { Moon, Sun, Plus, Calendar, Grid, LayoutGrid, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import heroImage from "@/assets/task-hero.png";
 import taskifyIcon from "@/assets/icon.png";
@@ -12,6 +13,7 @@ export function TaskManager() {
   const [viewMode, setViewMode] = useState<'grid' | 'slider'>('grid');
   const [scrollY, setScrollY] = useState(0);
   const [showCompleted, setShowCompleted] = useState(true);
+  const [showDbError, setShowDbError] = useState(false); // Estado para mostrar/ocultar error de DB
   const { toast } = useToast();
   
   // Usar el hook de tareas refactorizado
@@ -19,6 +21,7 @@ export function TaskManager() {
     tasks, 
     loading, 
     error, 
+    isDbError, // Nuevo estado del hook
     createTask, 
     deleteTask, 
     toggleTaskComplete,
@@ -26,6 +29,13 @@ export function TaskManager() {
     initializeGoogleAPI,
     isGoogleLoaded 
   } = useTasks();
+
+  // Mostrar error de DB cuando sea detectado
+  useEffect(() => {
+    if (isDbError && !showDbError) {
+      setShowDbError(true);
+    }
+  }, [isDbError, showDbError]);
 
   // Parallax effect
   useEffect(() => {
@@ -191,7 +201,7 @@ export function TaskManager() {
           )}
 
           {/* Error Message */}
-          {error && (
+          {error && !isDbError && (
             <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">
               <p className="text-sm">{error}</p>
             </div>
@@ -300,6 +310,13 @@ export function TaskManager() {
           )}
         </div>
       </main>
+
+      {/* Database Error Modal */}
+      <DatabaseErrorMessage
+        isVisible={showDbError}
+        onClose={() => setShowDbError(false)}
+        error={error || undefined}
+      />
 
       {/* Footer */}
       <footer className="mt-auto py-6 bg-gradient-to-r from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-t border-blue-200/50 dark:border-slate-700/50 relative z-10">

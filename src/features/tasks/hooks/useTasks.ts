@@ -8,6 +8,7 @@ export const useTasks = () => {
   const [tasks, setTasks] = useState<TaskData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDbError, setIsDbError] = useState(false); // Estado específico para errores de DB
   const { toast } = useToast();
   
   // Hook de Google Calendar
@@ -16,26 +17,47 @@ export const useTasks = () => {
   // Cargar tareas al inicializar
   const loadTasks = useCallback(async () => {
     try {
-      console.log('🔄 [DEBUG] Iniciando carga de tareas...');
+      if (import.meta.env.DEV) {
+        console.log('🔄 [DEBUG] Iniciando carga de tareas...');
+      }
       setLoading(true);
       setError(null);
+      setIsDbError(false);
 
       const taskDataArray = await taskService.getTasks();
-      console.log('✅ [DEBUG] Tareas cargadas desde Supabase:', taskDataArray);
+      if (import.meta.env.DEV) {
+        console.log('✅ [DEBUG] Tareas cargadas desde Supabase:', taskDataArray);
+      }
       setTasks(taskDataArray);
       
     } catch (err) {
-      console.error('❌ [DEBUG] Error al cargar tareas:', err);
+      if (import.meta.env.DEV) {
+        console.error('❌ [DEBUG] Error al cargar tareas:', err);
+      }
       const message = err instanceof Error ? err.message : 'Error al cargar tareas';
+      
+      // Detectar si es un error de conexión a la base de datos
+      const isConnectionError = 
+        message.includes('ERR_NAME_NOT_RESOLVED') ||
+        message.includes('Failed to fetch') ||
+        message.includes('Network error') ||
+        message.includes('fetch');
+        
       setError(message);
-      toast({
-        title: "Error",
-        description: message,
-        variant: "destructive"
-      });
+      setIsDbError(isConnectionError);
+      
+      if (!isConnectionError) {
+        toast({
+          title: "Error",
+          description: message,
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
-      console.log('🏁 [DEBUG] Carga de tareas finalizada');
+      if (import.meta.env.DEV) {
+        console.log('🏁 [DEBUG] Carga de tareas finalizada');
+      }
     }
   }, [toast]);
 
@@ -47,6 +69,7 @@ export const useTasks = () => {
     try {
       console.log('🚀 [DEBUG] Creando nueva tarea:', taskData);
       setError(null);
+      setIsDbError(false);
       let calendarEventId: string | null = null;
 
       // Si el usuario quiere agregar a Google Calendar
@@ -63,36 +86,64 @@ export const useTasks = () => {
         console.log('✅ [DEBUG] Evento creado en Google Calendar:', calendarEventId);
       }
 
-      // Crear tarea en la base de datos
-      console.log('💾 [DEBUG] Guardando tarea en Supabase...');
-      const createdTask = await taskService.createTask(taskData);
-      console.log('✅ [DEBUG] Tarea guardada en Supabase:', createdTask);
+      // Intentar crear tarea en la base de datos solo si no hay error de DB
+      if (!isDbError) {
+        try {
+          console.log('💾 [DEBUG] Guardando tarea en Supabase...');
+          const createdTask = await taskService.createTask(taskData);
+          console.log('✅ [DEBUG] Tarea guardada en Supabase:', createdTask);
 
-      // Si se creó el evento en Google Calendar, actualizar el calendar_id
-      if (calendarEventId) {
-        console.log('🔗 [DEBUG] Actualizando calendar_id en la base de datos...');
-        await taskService.updateTaskCalendarId(createdTask.id, calendarEventId);
-        createdTask.addToGoogleCalendar = true;
+          // Si se creó el evento en Google Calendar, actualizar el calendar_id
+          if (calendarEventId) {
+            console.log('🔗 [DEBUG] Actualizando calendar_id en la base de datos...');
+            await taskService.updateTaskCalendarId(createdTask.id, calendarEventId);
+            createdTask.addToGoogleCalendar = true;
+          }
+
+          // Actualizar estado local
+          console.log('🔄 [DEBUG] Actualizando estado local...');
+          setTasks(prev => {
+            const updatedTasks = [createdTask, ...prev];
+            console.log('📝 [DEBUG] Estado local actualizado. Total tareas:', updatedTasks.length);
+            return updatedTasks;
+          });
+          
+          toast({
+            title: "✅ Tarea creada",
+            description: `"${taskData.title}" ha sido guardada${calendarEventId ? ' y agregada al calendario' : ''}.`,
+          });
+
+        } catch (dbErr) {
+          console.warn('⚠️ [DEBUG] Error de DB, pero continúa con Calendar:', dbErr);
+          
+          // Si hay error de DB pero el calendario funcionó
+          if (calendarEventId) {
+            toast({
+              title: "✅ Tarea creada en Calendar",
+              description: `"${taskData.title}" se agregó al calendario. La base de datos no está disponible.`,
+              variant: "default"
+            });
+          } else {
+            throw dbErr; // Re-lanzar si tampoco funcionó el calendario
+          }
+        }
+      } else {
+        // Solo mostrar éxito del calendario si la DB está caída
+        if (calendarEventId) {
+          toast({
+            title: "✅ Tarea creada en Calendar",
+            description: `"${taskData.title}" se agregó al calendario.`,
+          });
+        }
       }
 
-      // Actualizar estado local
-      console.log('🔄 [DEBUG] Actualizando estado local...');
-      setTasks(prev => {
-        const updatedTasks = [createdTask, ...prev];
-        console.log('📝 [DEBUG] Estado local actualizado. Total tareas:', updatedTasks.length);
-        return updatedTasks;
-      });
-      
-      toast({
-        title: "✅ Tarea creada",
-        description: `"${taskData.title}" ha sido guardada${calendarEventId ? ' y agregada al calendario' : ''}.`,
-      });
-
-      // Refresh adicional para asegurar sincronización
-      console.log('🔄 [DEBUG] Haciendo refresh adicional en 500ms...');
-      setTimeout(() => {
-        loadTasks();
-      }, 500);
+      // Refresh adicional para asegurar sincronización (solo si DB disponible)
+      if (!isDbError) {
+        console.log('🔄 [DEBUG] Haciendo refresh adicional en 500ms...');
+        setTimeout(() => {
+          loadTasks();
+        }, 500);
+      }
 
       return true;
     } catch (err) {
@@ -106,7 +157,7 @@ export const useTasks = () => {
       });
       return false;
     }
-  }, [toast, addTaskToCalendar, isGoogleLoaded, initializeGoogleAPI, loadTasks]);
+  }, [toast, addTaskToCalendar, isGoogleLoaded, initializeGoogleAPI, loadTasks, isDbError]);
 
   const updateTask = useCallback(async (id: string, updates: Partial<TaskData>): Promise<boolean> => {
     try {
@@ -197,6 +248,7 @@ export const useTasks = () => {
     tasks,
     loading,
     error,
+    isDbError, // Agregar el nuevo estado
     createTask,
     updateTask,
     deleteTask,
