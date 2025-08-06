@@ -302,9 +302,9 @@ export function TaskManager() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto py-12 bg-gradient-to-r from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-t border-blue-200/50 dark:border-slate-700/50 relative z-10">
+      <footer className="mt-auto py-6 bg-gradient-to-r from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-t border-blue-200/50 dark:border-slate-700/50 relative z-10">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center space-y-4">
+          <div className="text-center space-y-3">
             <div className="flex items-center justify-center gap-2">
               <img src={taskifyIcon} alt="Taskify" className="w-6 h-6" />
               <span className="text-lg font-semibold text-slate-700 dark:text-slate-300">Taskify</span>
@@ -312,10 +312,8 @@ export function TaskManager() {
             <p className="text-slate-600 max-w-md mx-auto">
               Organiza tu día de manera eficiente y mantén tus tareas bajo control.
             </p>
-            <div className="flex justify-center gap-6 text-sm text-slate-500">
+            <div className="text-base text-slate-600 dark:text-slate-400">
               <span>© 2025 Taskify</span>
-              <span>•</span>
-              <span>Hecho con ❤️</span>
             </div>
           </div>
         </div>

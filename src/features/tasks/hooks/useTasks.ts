@@ -16,13 +16,16 @@ export const useTasks = () => {
   // Cargar tareas al inicializar
   const loadTasks = useCallback(async () => {
     try {
+      console.log('🔄 [DEBUG] Iniciando carga de tareas...');
       setLoading(true);
       setError(null);
 
       const taskDataArray = await taskService.getTasks();
+      console.log('✅ [DEBUG] Tareas cargadas desde Supabase:', taskDataArray);
       setTasks(taskDataArray);
       
     } catch (err) {
+      console.error('❌ [DEBUG] Error al cargar tareas:', err);
       const message = err instanceof Error ? err.message : 'Error al cargar tareas';
       setError(message);
       toast({
@@ -32,6 +35,7 @@ export const useTasks = () => {
       });
     } finally {
       setLoading(false);
+      console.log('🏁 [DEBUG] Carga de tareas finalizada');
     }
   }, [toast]);
 
@@ -41,31 +45,43 @@ export const useTasks = () => {
 
   const createTask = useCallback(async (taskData: TaskData): Promise<boolean> => {
     try {
+      console.log('🚀 [DEBUG] Creando nueva tarea:', taskData);
       setError(null);
       let calendarEventId: string | null = null;
 
       // Si el usuario quiere agregar a Google Calendar
       if (taskData.addToGoogleCalendar) {
+        console.log('📅 [DEBUG] Agregando a Google Calendar...');
         // Inicializar Google API si no está cargado
         if (!isGoogleLoaded) {
+          console.log('🔄 [DEBUG] Inicializando Google API...');
           await initializeGoogleAPI();
         }
         
         // Intentar agregar al calendario
         calendarEventId = await addTaskToCalendar(taskData);
+        console.log('✅ [DEBUG] Evento creado en Google Calendar:', calendarEventId);
       }
 
       // Crear tarea en la base de datos
+      console.log('💾 [DEBUG] Guardando tarea en Supabase...');
       const createdTask = await taskService.createTask(taskData);
+      console.log('✅ [DEBUG] Tarea guardada en Supabase:', createdTask);
 
       // Si se creó el evento en Google Calendar, actualizar el calendar_id
       if (calendarEventId) {
+        console.log('🔗 [DEBUG] Actualizando calendar_id en la base de datos...');
         await taskService.updateTaskCalendarId(createdTask.id, calendarEventId);
         createdTask.addToGoogleCalendar = true;
       }
 
       // Actualizar estado local
-      setTasks(prev => [createdTask, ...prev]);
+      console.log('🔄 [DEBUG] Actualizando estado local...');
+      setTasks(prev => {
+        const updatedTasks = [createdTask, ...prev];
+        console.log('📝 [DEBUG] Estado local actualizado. Total tareas:', updatedTasks.length);
+        return updatedTasks;
+      });
       
       toast({
         title: "✅ Tarea creada",
@@ -73,12 +89,14 @@ export const useTasks = () => {
       });
 
       // Refresh adicional para asegurar sincronización
+      console.log('🔄 [DEBUG] Haciendo refresh adicional en 500ms...');
       setTimeout(() => {
         loadTasks();
       }, 500);
 
       return true;
     } catch (err) {
+      console.error('❌ [DEBUG] Error al crear tarea:', err);
       const message = err instanceof Error ? err.message : 'Error al crear tarea';
       setError(message);
       toast({

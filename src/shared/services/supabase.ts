@@ -4,11 +4,25 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+console.log('🔧 [SUPABASE CONFIG]');
+console.log('  URL:', supabaseUrl);
+console.log('  ANON_KEY:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'undefined');
+
 if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ [SUPABASE] Faltan variables de entorno');
   throw new Error('Faltan las variables de entorno de Supabase')
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Test de conexión al cargar
+supabase.from('tasks').select('count', { count: 'exact' }).then(({ count, error }) => {
+  if (error) {
+    console.error('❌ [SUPABASE] Error de conexión:', error);
+  } else {
+    console.log('✅ [SUPABASE] Conexión exitosa. Total tareas:', count);
+  }
+});
 
 // Tipos para TypeScript
 export interface Database {

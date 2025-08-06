@@ -30,14 +30,23 @@ export const taskService = {
    * Obtener todas las tareas del usuario
    */
   async getTasks(): Promise<TaskData[]> {
+    console.log('📡 [SUPABASE] Consultando tareas...');
+    
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ [SUPABASE] Error al consultar tareas:', error);
+      throw error;
+    }
 
-    return data?.map(supabaseToTaskData) || [];
+    console.log('✅ [SUPABASE] Datos recibidos:', data);
+    const tasks = data?.map(supabaseToTaskData) || [];
+    console.log('🔄 [SUPABASE] Tareas convertidas:', tasks);
+    
+    return tasks;
   },
 
   /**
